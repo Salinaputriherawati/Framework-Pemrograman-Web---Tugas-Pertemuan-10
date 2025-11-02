@@ -3,8 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
+use App\Exports\ProductsExport;
+use Maatwebsite\Excel\Facades\Excel;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Spatie\Browsershot\Browsershot;
+
 
 class ProductController extends Controller
 {
@@ -23,6 +28,12 @@ class ProductController extends Controller
             });
         }
 
+        $firstProduct = Product::orderBy('created_at', 'asc')->first();
+        $lastProduct  = Product::orderBy('created_at', 'desc')->first();
+
+        $startDate = $firstProduct ? $firstProduct->created_at->format('d/m/Y') : null;
+        $endDate   = $lastProduct ? $lastProduct->created_at->format('d/m/Y') : null;
+
         // Sorting 
         if ($request->has('sort_by') && $request->sort_by != '') {
             $order = $request->has('order') && $request->order == 'desc' ? 'desc' : 'asc';
@@ -31,7 +42,7 @@ class ProductController extends Controller
 
         // Jika tidak ada parameter ‘search’, langsung ambil produk dengan paginasi
         $data = $query->paginate(2)->appends($request->query());
-        return view("master-data.product-master.index-product", compact('data'));
+        return view("master-data.product-master.index-product", compact('data', 'startDate', 'endDate'));
 
         // $data = Product::paginate(perPage: 2);
         // return view("master-data.product-master.index-product", compact('data'));
@@ -143,5 +154,52 @@ class ProductController extends Controller
             return redirect()->back()->with('success', 'Product berhasil dihapus.');
         }
         return redirect()->back()->with('error', 'Product tidak ditemukan.');
+    }
+
+    public function exportExcel()
+    {
+        return Excel::download(new ProductsExport, 'product.xlsx');
+    }
+
+    public function exportPdf()
+    {
+        $products = Product::all();
+
+        // Ambil tanggal pertama dan terakhir
+        $firstProduct = Product::orderBy('created_at', 'asc')->first();
+        $lastProduct  = Product::orderBy('created_at', 'desc')->first();
+
+        $startDate = $firstProduct ? $firstProduct->created_at->format('d/m/Y') : null;
+        $endDate   = $lastProduct ? $lastProduct->created_at->format('d/m/Y') : null;
+
+        $pdf = Pdf::loadView('master-data.product-master.export-product', compact('products', 'startDate', 'endDate'));
+        return $pdf->download('product.pdf');
+    }
+
+
+    public function exportJpg()
+    {
+        // Ambil semua produk
+        $products = Product::all();
+
+        // Ambil tanggal pertama dan terakhir
+        $firstProduct = Product::orderBy('created_at', 'asc')->first();
+        $lastProduct  = Product::orderBy('created_at', 'desc')->first();
+
+        $startDate = $firstProduct ? $firstProduct->created_at->format('d/m/Y') : null;
+        $endDate   = $lastProduct ? $lastProduct->created_at->format('d/m/Y') : null;
+
+        $path = storage_path('app/public/product.jpg');
+
+        Browsershot::html(view('master-data.product-master.export-product', [
+            'products'  => $products,
+            'startDate' => $startDate,
+            'endDate'   => $endDate
+        ])->render())
+            ->setScreenshotType('jpeg')
+            ->windowSize(1200, 800)
+            ->save($path);
+
+        return response()->download($path);
     }
 }
