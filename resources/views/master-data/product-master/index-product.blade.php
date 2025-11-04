@@ -163,6 +163,19 @@
                             </a>
                         </th>
 
+                        {{-- Suppliers --}}
+                        <th class="px-4 py-2 border border-gray-200">
+                            <a class="flex items-center gap-1"
+                                href="{{ request()->fullUrlWithQuery([
+                    'sort_by' => 'producer',
+                    'order' => (request('sort_by') === 'suppliers' && request('order') === 'asc') ? 'desc' : 'asc'
+               ]) }}">
+                                Suppliers
+                                {!! request('sort_by') === 'suppliers'
+                                ? (request('order') === 'asc' ? '🔼' : '🔽')
+                                : '⬍' !!}
+                            </a>
+                        </th>
                         <th class="px-4 py-2 border border-gray-200">Aksi</th>
                     </tr>
                 </thead>
@@ -182,6 +195,7 @@
                         <td class="px-4 py-2 border border-gray-200">{{$item->information }}</td>
                         <td class="px-4 py-2 border border-gray-200">{{$item->qty }}</td>
                         <td class="px-4 py-2 border border-gray-200">{{$item->producer }}</td>
+                        <td class="px-4 py-2 border border-gray-200">{{$item->supplier->supplier_name ?? '-' }}</td>
                         <td class="px-4 py-2 border border-gray-200">
                             <a href="{{ route('product-edit', $item->id) }}"
                                 class="px-2 text-blue-600 hover:text-blue-800">Edit</a>
